@@ -1,0 +1,304 @@
+◈ 모듈 설치
+pip install beautifulsoup4
+
+웹사이트에서 데이터를 추출하고,
+원하는 정보를 추출하는 것.
+간단하게 HTML과 XML에서 정보를 추출하여 정보를
+분석해주는 라이브러리이다.
+
+
+용어정리 : XML(Extensible Markup Language)
+XML(Extensible Markup Language)은 W3C에서 개발된, 다른 특수한 목적을 갖는 마크업 언어를 만드는데 사용하도록 권장하는 다목적 마크업 언어이다. XML은 SGML의 단순화된 부분집합으로, 다른 많은 종류의 데이터를 기술하는 데 사용할 수 있다. XML은 주로 다른 종류의 시스템, 특히 인터넷에 연결된 시스템끼리 데이터를 쉽게 주고 받을 수 있게 하여 HTML의 한계를 극복할 목적으로 만들어졌다. 
+기계는 인간의 언어를 읽거나 이해할 수 없는 계산기에 불과하므로 XML과 같은 구조화된 마크업 언어들은 인간의 읽고 분석하여 이해하는 능력과 컴퓨터의 단순한 계산적인 판독 능력 사이에 타협점을 만들어 줄 수 있다. W3C가 만든 XML 1.0 Specification[1]과 몇몇 다른 관련 명세들[2]과 모든 자유 개방형 표준[3]에서 정의되었다. 
+W3C는 XML 설계 목표에서 단순성과 일반성, 그리고 인터넷을 통한 사용 가능성을 강조했다.[4] XML은 텍스트 데이터 형식으로 유니코드를 사용해 전 세계 언어를 지원한다. XML을 설계할 때는 주로 문서를 표현하는데 집중했지만, 지금은 임의의 자료구조를 나타내는 데 널리 쓰인다. 대표적인 예가 웹 서비스이다. 
+많은 API가 개발되어 XML 데이터를 처리하고자 하는 소프트웨어 개발자들이 활용하고 있다. 또한, 여러 가지 스키마 시스템이 있어서 XML 기반 언어의 정의를 보다 쉽게 할 수 있도록 도와준다. 
+
+
+------------------------------------------------------------
+
+
+◈ 기본적인 사용법 익히기
+
+
+☞ 파일명 : bs-test1.py
+
+
+# 라이브러리 읽어 들이기 --- (※1)
+from bs4 import BeautifulSoup
+
+
+# 분석하고 싶은 HTML --- (※2)
+html = """
+<html><body>
+  <h1>스크레이핑이란?</h1>
+  <p>웹 페이지를 분석하는 것</p>
+  <p>원하는 부분을 추출하는 것</p>
+</body>
+</html>
+"""
+
+# HTML 분석하기 --- (※3)
+soup = BeautifulSoup(html, 'html.parser')
+
+
+# 원하는 부분 추출하기 --- (※4)
+h1 = soup.html.body.h1
+p1 = soup.html.body.p
+p2 = p1.next_sibling.next_sibling
+
+
+# 요소의 글자 출력하기 --- (※5)
+print("h1 = " + h1.string)
+print("p  = " + p1.string)
+print("p  = " + p2.string)
+
+
+
+☞프로그램 확인.
+
+프로그램의 (※1)에서는 BeautifulSoup 라이브러리를 읽어들인다.
+
+프로그램의 (※2)에서는 분석 대상 HTML을 지정한다.
+
+프로그램의 (※3)에서는 Beautifu!Soup 인스턴스를 생성한다. 
+
+첫번째 매개변수에 HTML을 지정하고, 
+두번째 매개변수에 분석할 분석기(parser)의 종류를 지정한다. 
+
+HTML을 분석할 때는 'html.parser'라고 지정한다.
+
+프로그램의 (※4)에서 원하는 부분을 추출한다. 
+정상적으로 분석됐다면 HTML의 구조처럼 루트 요소인 <html>에서 마침표(.)를 사용해 값에 접근할 수 있다. 
+
+코드에서는 "soup.html.body.h1" 이라고 적었는데, 이것은
+<html> <body> <h1>에 있는 요소에 접근한 것이다. 
+
+프로그램의 (※5)에서는 string 속성에 접근해서 요소의 글자 부분을 추출한다.
+
+분석할 때 HTML 내부에는 <P> 태그가 2개 있는데, 
+soup.html.body.p 라고 접근하면 앞쪽에 있는 <P> 태그를 추출하게 된다. 이때 첫 번째의 next_sibling에서는 </p> 뒤에 있는 줄바꿈 또는 공백이 추출되므로, next_sibl ing을 한 번 더 사용해 2 번째 <P> 태그를 추출하게 된다. 
+
+----------------------------------------------
+
+
+◈ id로 요소를 찾는 방법
+
+Beautifu!Soup는 루트부터 하나하나 요소를 찾는 방법 말고도 id 속성을 지정해서 요소를 찾는 find() 메서드라는 메서드를 제공한다. 
+
+☞ 파일명 : bs-test2.py
+
+
+from bs4 import BeautifulSoup 
+
+html = """
+<html><body>
+  <h1 id="title">스크레이핑이란?</h1>
+  <p id="body">웹 페이지를 분석하는 것</p>
+  <p>원하는 부분을 추출하는 것</p>
+</body></html>
+"""
+
+
+# HTML 분석하기 --- (※1)
+soup = BeautifulSoup(html, 'html.parser')
+
+
+# find() 메서드로 원하는 부분 추출하기 --- (※2)
+title = soup.find(id="title")
+body  = soup.find(id="body")
+
+# id를 지정해 요소를 추출하는데, find() 메서드에 "id=<값>" 형태로 매개변수를 지정해 요소를 검색한다.
+
+
+
+# 텍스트 부분 출력하기
+print("#title=" + title.string)
+print("#body=" + body.string)
+
+
+
+☞프로그램 확인.
+
+프로그램의 (※1)에서는 BeautifulSoup 인스턴스를 생성한다. 
+첫 번째 매개변수에 분석하고 싶은 HTML을 지정한다.
+
+프로그램의 (※2)에서는 id를 지정해 요소를 추출한다. 
+find() 메서드에 'id=<값>' 형태로 매개변수를 지정해 요소를 검색한다. 
+
+
+------------------------------------------------------------
+
+
+◈ 여러 개의 요소 추출하기 - find_all() 메서드
+
+참고로 여러 개의 태그를 한 번에 추출하고 싶을 때는 find_all () 메서드를 사용한다. 
+
+다음 코드는 HTML 내부에 있는 여러 개의 <a> 태그를 추출하는 프로그램이다. <a> 태그는 하이퍼링크 태그이므로, 링크 대상은 href 속성으로 지정하고 링크를 설명하는 텍스트는 태그 내부에 입력한다. 
+
+예> 
+
+☞ 파일명 : bs-link.py
+
+from bs4 import BeautifulSoup 
+html = """
+<html><body>
+  <ul>
+    <li><a href="http://www.naver.com">naver</a></li>
+    <li><a href="http://www.daum.net">daum</a></li>
+  </ul>
+</body></html>
+"""
+
+# HTML 분석하기 --- (※1)
+soup = BeautifulSoup(html, 'html.parser')
+
+
+# find_all() 메서드로 추출하기 --- (※2)
+links = soup.find_all("a")
+
+
+# 링크 목록 출력하기 --- (※3)
+for a in links:
+    href = a.attrs['href']
+    text = a.string
+    print(text, ">", href)
+
+
+☞프로그램 확인.
+
+프로그램의 (※1)에서는 HTML을 지정해 BeautifulSoup 인스턴스를 생성한다. 
+
+프로그램의 (※2)에서는 find_all() 메서드를 사용해 모든 <a> 태그를 추출한다.
+
+프로그램의 (※3)에서는 추출한 모든 요소를 for 구문으로 반복 처리한다. 
+
+링크의 href 속성은 attrs['href'] 처럼 attrs 속성에서 추출한다. 
+
+또한 내부의 설명 텍스트는 string 속성으로 추출한다. 
+
+
+------------------------------------------------------------------------------
+
+◈ DOM 요소의 속성에 대해
+
+DOM(Docurnent Object Model)이란 XML 또는 HTML의 요소에 접근하는 구조를 나타낸다. 
+그리고 DOM 요소의 속성이란 태그 이름 뒤에 있는 각 속성을 말한다. 
+예를 들어 <a> 태그라면 href 등이 속성이다.
+
+
+DOM 요소의 속성을 추출하는 방법을 확인해봅시다. 
+
+파이썬의 대화형 실행 환경인 REPL을 사용해 동작을 확인해보겠다. 
+
+REPL을 실행하려면 명령줄에 “python3”라고 입력한다. 
+
+ 
+
+>>> from bs4 import BeautifulSoup
+>>> soup = BeautifulSoup("<p><a href='a.html'>test</a></p>',"html.parser")
+
+
+# 분석이 제 대로 됐는지 확인하기 -- (※1)
+>>> soup.prettify()
+ '<p>\n <a href="a.html">\n test\n </a>\n</p>'
+
+>>> # <a> 태그를 변수 a에 할당
+>>> a = soup.p.a
+
+
+# attrs 속성의 자료형 확인 -- (※2)
+>>>type(a.attrs)
+<class 'diet'>
+
+
+# href 속성이 있는지 확인
+>>> 'href' in a.attrs
+True
+
+>>> # href 속성 값 확인
+
+>>> a ['href']
+'a.html' 
+
+
+(※1)처럼 prettify() 메서드를 이용하면 제대로 분석됐는지 확인할 수 있다. 
+
+(※2)처럼 attrs 속성의 자료형을 확인하면 딕셔너리(diet)라는 것을 알 수 있다. 
+
+따라서 in 연산자를 사용해 원하는 속성이 존재하는지 확인할 수 있다. 
+
+------------------------------------------------------------------------------
+
+◈ urlopen()과 BeautifulSoup 조합하기
+
+BeautifulSoup 인스턴스를 생성하는 방법을 배웠다. 
+
+HTML 문자열을 지정할 수도 있지만, 
+
+open() 함수 또는 urllib.request.urlopen() 함수의 리턴값을 지정해도 된다.
+
+
+
+urlopen()을 사용해 "기상청 RSS"에서 특정 내용을 추출해본다. 
+
+
+
+☞ 파일명 : bs-forecast.py
+
+
+from bs4 import BeautifulSoup
+import urllib.request as req
+
+url = "http://www.kma.go.kr/weather/forecast/mid-term-rss3.jsp"
+
+
+# urlopen()으로 데이터 가져오기 ------------------ (※1)
+res = req.urlopen(url)
+
+
+# BeautifulSoup으로 분석하기 --------------------- (※2)
+soup = BeautifulSoup(res, "html.parser")
+
+
+# 원하는 데이터 추출하기 ------------------------- (※3)
+title = soup.find("title").string
+wf = soup.find("wf").string
+print(title)
+print(wf)
+
+
+명령줄에서 실행한다. 
+기상청 RSS에서 XML 데이터를 추출하고 XML의 내용을 출력한다.
+
+
+☞프로그램 확인.
+
+프로그램의 (※1)에서는 urlopen()으로 URL을 열어준다. 
+
+프로그램의 (※2)에서 Beautifu]Soup로 분석한다. 
+
+프로그램의 (※3)에서 원하는 태그를 추출하고, 결과를 출력한다. 
+
+======================================================================
+실습] 지역, 날짜&시간, 날씨상태 추출하기
+
+from bs4 import BeautifulSoup 
+import urllib.request as req
+
+
+url = "http://www.kma.go.kr/weather/forecast/mid-term-rss3.jsp"
+
+#url에서 검색한 데이터를 가져오기
+res = req.urlopen(url)
+
+soup = BeautifulSoup(res, 'html.parser')
+
+province = soup.find("province").string
+tmEf  = soup.select_one("location > data > tmEf").string
+wf2 = soup.select_one("location > data > wf").string
+
+
+print("#province  =" + province.string)
+print("#tmEf      =" + tmEf.string)
+print("#wf2       =" + wf2.string)
+=======================================================================

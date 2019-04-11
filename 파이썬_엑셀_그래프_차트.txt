@@ -1,0 +1,161 @@
+※ 파이썬에서 엑셀로 그래프 & 차트 만들기          파이썬_엑셀_그래프_차트.txt
+    
+조건1. Shee1에는 데이터값만 입력한다.
+조건2. Shee2에는 그래프만 입력한다.
+
+
+
+# (1) 데이터 작성
+import matplotlib.pyplot as plt
+import pandas as pd
+
+sales = { '시간': [9, 10, 11, 12, 13, 14, 15],
+	'제품1': [10, 15, 12, 11, 12, 14, 13],
+	'제품2': [9, 11, 14, 12, 13, 10, 12]}
+
+df = pd.DataFrame(sales, index = sales['시간'], columns = ['제품1', '제품2'])
+df2 = pd.DataFrame()
+df.index.name = '시간'
+--------------------------------------------------------------------------------------
+
+# (2) 그래프 작성 & 파일 저장
+import matplotlib
+import pandas as pd
+
+matplotlib.rcParams['font.family']='Malgun Gothic' 
+matplotlib.rcParams['axes.unicode_minus'] = False
+
+product_plot = df.plot(grid = True, style = ['-*', 'o'], title='시간대별 생산량')
+product_plot.set_ylabel("생산량")
+
+image_file = 'D:/py/data/fig_for excel1.png' 	
+plt.savefig(image_file, dpi = 400) 			
+----------------------------------------------------------------------------------------
+
+# (3) 엑셀파일 생성
+# Sheet1에는 데이터만 작성한다.
+# Sheet2에는 그래프만 작성한다.
+
+excel_file = 'D:/py/data/data_image_to_excel.xlsx'
+excel_writer = pd.ExcelWriter(excel_file, engine='xlsxwriter')
+
+df.to_excel(excel_writer, index=True, sheet_name= 'Sheet1')
+df2.to_excel(excel_writer, index=True, sheet_name= 'Sheet1')
+
+worksheet = excel_writer.sheets['Sheet2']
+worksheet.insert_image('A1', image_file, {'x_scale': 0.7, 'y_scale': 0.7})
+
+excel_writer.save() 
+
+==============================================================================================
+
+※※※ 통합문서 파일로 작업할 경우 ※※※ 
+
+(1) 담당자별_판매량_Andy사원 차트 
+(2) 담당자별_판매량_Becky사원 차트
+(3) 담당자별_판매량_Chris사원 차트
+
+위의 3개 파일을 "담당자별_판매량_통합.xlsx" 파일로 생성해준다.
+생성된 "담당자별_판매량_통합.xlsx" 파일의 Sheet2에 사원별 차트만 별도로 생성한다.
+
+
+
+
+import matplotlib
+import matplotlib.pyplot as plt
+import glob
+import pandas as pd
+
+#통합 엑셀파일 파일 이름지정
+excel_file_name = "d:/py/Data/담당자별_판매량_통합.xlsx"
+
+#pandas 모듈을 이용해 통합자료 엑셀파일 객체 생성
+excel_total_file_writer = pd.ExcelWriter(excel_file_name, engine='xlsxwriter')
+
+#통합할 엑셀파일들을 glob 모듈을 이용하여 디렉토리 스캔
+excel_data_files = glob.glob("d:/py/Data/담당자별_판매량_*사원.xlsx")
+
+#읽어온 엑셀파일들의 데이터를 통합하기 위해 pandas의 DataFrame 형태로의 변수생성 - total_data 변수
+total_data = pd.DataFrame()
+
+#반복문 for를 이용해 excel_data_files 리스트의 엑셀 파일을 하나씩 읽고, append를 이용해서 total_data 변수에 차례대로 추가
+for i in excel_data_files :
+			df = pd.read_excel(i)
+			total_data = total_data.append(df, ignore_index=True)
+
+#엑셀파일에 데이터 작성
+total_data.to_excel(excel_total_file_writer, index=False, sheet_name='통합문서')
+
+#차트 작성 시작 (통합된 자료에 그대로 적용)
+workbook = excel_total_file_writer.book
+
+#워크시트 지정 - '담당자별_판매량_통합.xlsx' 파일 안의 새 워크시트 '차트' 생성추가
+worksheet = workbook.add_worksheet('차트')
+
+#차트 생성 '선형 타입 선택'
+chart = workbook.add_chart({'type': 'line'})
+
+#차트 참고 값 지정 (분기별 시계 판매량 / 담당자별)
+chart.add_series({'values': '=통합문서!$D$2:$G$2',
+			'categories': '=통합문서!$D$1:$G$1',
+			'name': '=통합문서!$B$2'})
+
+chart.add_series({'values': '=통합문서!$D$5:$G$5',
+			'categories': '=통합문서!$D$1:$G$1',
+			'name': '=통합문서!$B$5'})
+
+chart.add_series({'values': '=통합문서!$D$8:$G$8',
+			'categories': '=통합문서!$D$1:$G$1',
+			'name': '=통합문서!$B$8'})
+
+#차트 제목, x축, y축 이름 지정
+chart.set_title({'name': '분기별 시계 판매량'})
+chart.set_x_axis({'name': '분기'})
+chart.set_y_axis({'name': '판매량'}) 
+
+#차트1 참고 값 지정 (분기별 구두 판매량 / 담당자별)
+chart1 = workbook.add_chart({'type': 'line'})
+
+chart1.add_series({'values': '=통합문서!$D$3:$G$3',
+			'categories': '=통합문서!$D$1:$G$1',
+			'name': '=통합문서!$B$2'})
+
+chart1.add_series({'values': '=통합문서!$D$6:$G$6',
+			'categories': '=통합문서!$D$1:$G$1',
+			'name': '=통합문서!$B$5'})
+
+chart1.add_series({'values': '=통합문서!$D$9:$G$9',
+			'categories': '=통합문서!$D$1:$G$1',
+			'name': '=통합문서!$B$8'})
+
+chart1.set_title({'name': '분기별 구두 판매량'})
+chart1.set_x_axis({'name': '분기'})
+chart1.set_y_axis({'name': '판매량'})
+
+#차트1 참고 값 지정 (분기별 핸드백 판매량 / 담당자별)
+chart2 = workbook.add_chart({'type': 'line'})
+
+chart2.add_series({'values': '=통합문서!$D$4:$G$4',
+			'categories': '=통합문서!$D$1:$G$1',
+			'name': '=통합문서!$B$2'})
+
+chart2.add_series({'values': '=통합문서!$D$7:$G$7',
+			'categories': '=통합문서!$D$1:$G$1',
+			'name': '=통합문서!$B$5'})
+
+chart2.add_series({'values': '=통합문서!$D$10:$G$10',
+			'categories': '=통합문서!$D$1:$G$1',
+			'name': '=통합문서!$B$8'})
+
+chart2.set_title({'name': '분기별 핸드백 판매량'})
+chart2.set_x_axis({'name': '분기'})
+chart2.set_y_axis({'name': '판매량'})
+
+#생성된 차트 삽입 위치 지정
+worksheet.insert_chart('A2', chart)
+worksheet.insert_chart('I2', chart1)
+worksheet.insert_chart('Q2', chart2)
+
+#편집 내용 적용 및 저장
+excel_total_file_writer.save()
+

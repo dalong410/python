@@ -1,0 +1,33 @@
+# 파일명 : bs12.txt
+# DOM(Docurnent Object Model) : XML 또는 HTML의 요소에 접근하는 구조를 의미한다.
+# DOM 요소의 속성 : 태그 이름뒤에 있는 각 속성을 의미한다.
+# <a>의 속성 href
+
+
+
+
+>>> from bs4 import BeautifulSoup
+>>> soup = BeautifulSoup("<p><a href='a.html'>test</a></p>, html.parser")
+
+
+# 분석이 제대로 됐는지 확인하기 -- (※1)
+>>> soup.prettify()
+ '<p>\n <a href="a.html">\n test\n </a>\n</p>'
+
+>>> # <a> 태그를 변수 a에 할당
+>>> a = soup.p.a
+
+
+# attrs 속성의 자료형 확인 -- (※2)
+>>>type(a.attrs)
+<class 'diet'>
+
+
+# href 속성이 있는지 확인
+>>> 'href' in a.attrs
+True
+
+>>> # href 속성 값 확인
+
+>>> a ['href']
+'a.html' 

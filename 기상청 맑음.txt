@@ -1,0 +1,20 @@
+
+from bs4 import BeautifulSoup 
+import urllib.request as req
+
+
+url = "http://www.kma.go.kr/weather/forecast/mid-term-rss3.jsp"
+
+#url에서 검색한 데이터를 가져오기
+res = req.urlopen(url)
+
+soup = BeautifulSoup(res, 'html.parser')
+
+province = soup.find("province").string
+tmEf  = soup.select_one("location > data > tmEf").string
+wf2 = soup.select_one("location > data > wf").string
+
+
+print("#province  =" + province.string)
+print("#tmEf      =" + tmEf.string)
+print("#wf2       =" + wf2.string)

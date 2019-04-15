@@ -1,0 +1,60 @@
+>>> import sqlite3
+ 
+>>> conn = sqlite3.connect("sample")
+
+>>> conn
+<sqlite3.Connection object at 0x040267A0>
+
+>>> cursor = conn.cursor()
+>>> cursor
+
+>>> 
+>>> sqlite3.sqlite_version_info
+(3, 21, 0)
+ 
+>>> cursor.execute('SELECT sqlite_version()').fetchone() [0]
+'3.21.0'
+
+>>> cursor.execute("DROP TABLE IF EXISTS pets")
+
+>>> conn.commit()
+
+>>> cursor.execute('''CREATE TABLE pets (
+name VARCHAR(20), owner VARCHAR(20), species VARCHAR(20), birth DATE, death DATE)''')
+
+>>> cursor.execute("INSERT INTO pets VALUES('tom', 'kim', 'f', '2019-01-01', NULL)")
+
+>>> conn.commit()
+
+>>> cursor.execute("select * from pets")
+		   
+>>> cursor.fetchone()
+		   
+('tom', 'kim', 'f', '2019-01-01', None)
+
+		   
+>>> for rec in cursor.fetchmany(3):
+		   print(rec)
+		   
+>>> cursor.execute("INSERT INTO pets VALUES('aaa', 'lee', 'cat', '2019-01-01', NULL)")
+		   
+>>> cursor.execute("INSERT INTO pets VALUES('bbb', 'park', 'dog', '2019-01-01', NULL)")
+		   		   
+>>> cursor.execute("INSERT INTO pets VALUES('ccc', 'hong', 'bird', '2019-01-01', NULL)")
+		   		   
+>>> conn.commit()
+		   
+>>> cursor.fetchone()
+		   
+>>> cursor.execute("select * from pets")
+		   
+>>> cursor.fetchone()
+		   
+>>> for rec in cursor.fetchmany(3):
+		   print(rec)
+		   		   
+>>> for i in cursor.execute('select * from pets'):
+		   print(i)
+
+		   
+

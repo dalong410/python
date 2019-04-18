@@ -1,0 +1,1003 @@
+도커 + 우분투 16.04 + MySQL
+
+데이터베이스(DATABASE)
+데이터베이스는 대량의 데이터를 다루기 위해 특화된 소프트웨어입니다.
+머신러닝에 사용할 목적으로 데이터를 수집할 때는 어떻게 모아둘지 생각하는 것은 매우 중요한 문제입니다.
+규모가 크지 않은 데이터라면 CSV, JSON 등 다양한 데이터 형식을 사용해도 무관하나 규모가 크거나 복잡하다면 데이터베이스를 사용하는 것이 편리합니다.
+데이터베이스의 구조는 엑셀 시트(Excel Sheet)와 비슷한 여러 개의 테이블이 있으며 행과 열을 가진 2차원 데이터이다. 행을 레코드(record) 또는 로우(row)라고 부르며 열을 칼럼(column) 또는 필드(field)라고 부릅니다.
+
+데이터베이스는 크게 RDBMS(관계형 데이터베이스 관리 시스템 : Relational  DataBase Management System)와 NoSQL로 구분이 됩니다. RDBMS는 테이블을 만들 때 어떤 데이터를 저장할지 CREATE TABLE로 스키마를 정의해야 합니다. 하지만 NoSQL은 스키마를 정의하지 않아도 되어 간단하게 사용할 수 있습니다. 대표적인 NoSQL은 MongoDB가 있습니다. 
+
+
+
+SQLite
+SQLite은 파일 하나가 하나의 데이터베이스인 가벼운 데이터베이스입니다. 가볍다 보니 웹 브라우저 내부, 안드로이드, IOS 등 다양한 곳에서 별도의 데이터베이스 전용 애플리케이션을 사용하지 않아도 사용 가능합니다. 파이썬에서 사용할 경우에는 sqlite3라는 표준 라이브러리를 선언하면 됩니다.
+
+
+- 파이썬에서 SQLite 사용하기
+
+import sqlite3
+
+#sqlite 데이터베이스 연결하기
+conn = sqlite3.connect("test.sqlite")
+
+#테이블 생성 후 데이터 넣기
+cur = conn.cursor()
+cur.executescript("""
+DROP TABLE IF EXISTS items;
+
+CREATE TABLE items(
+    item_id INTEGER PRIMARY KEY,
+    name TEXT UNIQUE,
+    price INTEGER
+);
+INSERT INTO items(name, price) VALUES('Apple', 800);
+INSERT INTO items(name, price) VALUES('Orange', 780);
+INSERT INTO items(name, price) VALUES('Banana', 430);
+""")
+
+#데이터베이스 반영
+conn.commit()
+cur = conn.cursor()
+cur.execute("SELECT item_id, name, price FROM items")
+item_list = cur.fetchall()
+
+#출력
+for i in item_list:
+    print(i)
+'''
+(1, 'Apple', 800)
+(2, 'Orange', 780)
+(3, 'Banana', 430)
+'''
+
+----------------------------------------------------------------------------------
+
+다음은 INSERT 문에서 매개변수를 사용하여 저장하기입니다.
+
+import sqlite3
+
+#sqlite 데이터베이스 연결하기
+conn = sqlite3.connect("test2.sqlite")
+
+#테이블 생성
+cur = conn.cursor()
+cur.execute("DROP TABLE IF EXISTS items;")
+cur.execute("""CREATE TABLE items(
+    item_id INTEGER PRIMARY KEY,
+    name TEXT UNIQUE,
+    price INTEGER
+);""")
+conn.commit()
+
+#데이터 넣기
+cur = conn.cursor()
+cur.execute("INSERT INTO items(name, price) VALUES(?, ?)", ("Orange", 5200))
+conn.commit()
+
+#여러 데이터 연속으로 넣기
+data = [("Mango", 7700), ("Kiwi", 4000), ("Grape", 8000),
+        ("Peach", 9400), ("Persimmon", 7000), ("Banana", 4000)]
+cur.executemany("INSERT INTO items(name, price) VALUES(?, ?)", data)
+conn.commit()
+
+#4000-7000원 사이 데이터 추출
+cur = conn.cursor()
+price_range = (4000, 7000)
+cur.execute("SELECT * FROM items WHERE price >=? AND price <=?", price_range)
+fr_list = cur.fetchall()
+for fr in fr_list:
+    print(fr)
+'''
+(1, 'Orange', 5200)
+(3, 'Kiwi', 4000)
+(6, 'Persimmon', 7000)
+(7, 'Banana', 4000)
+'''
+---------------------------------------------------------------------------------------
+
+MySQL(MariaDB)
+MySQL은 오픈소스 데이터베이스입니다. 빠르고 사용하기 쉽다는 것이 특징이며 다양한 웹 애플리케이션의 대규모 데이터 저장에 사용되고 있습니다.  MySQL은 서버에 설치해서 사용하는 애플리케이션이기 때문에 노트북 용량을 위해 도커(docker)를 사용하겠습니다. 베이스 이미지는 우분투입니다.
+
+참고로, MySQL이 오라클로 인수가 됨으로써 우분투에서 MySQL을 사용 시 오픈소스를 지향하는
+MariaDB가 실행됩니다.
+
+다음은 도커 가상 환경(우분투) 위에 파이썬 + MySQL(MariaDB) 환경을 설치하겠습니다.
+
+#Docker에 Ubuntu 이미지 설치
+$docker pull ubuntu:16.04
+
+#Ubuntu 실행하고 셀에 로그인
+$docker run -it ubuntu:16.04
+$apt-get update
+
+#파이썬3 설치
+$apt-get install -y python3 python3-pip
+
+#Mysql설치
+$apt-get install -y mysql-server
+
+#파이썬에서 MySQL에 접속하기 위해 mysqlclient 설치
+$apt-get install -y default-libmysqlclient-dev
+$pip install mysqlclient
+
+#mysql 실행
+$service mysql start
+
+#MySQL 접속
+$mysql -u root -p
+MariaDB> CREATE DATABASE test;
+
+-----------------------------------------------------------------------------------
+
+다음은 파이썬 코드입니다.
+#test.py
+import MySQLdb
+
+#Mysql 연결
+conn = MySQLdb.connect(
+    user='root',
+    passwd='1234',
+    host='localhost',
+    db='test'
+)
+
+#커서 추출
+cur = conn.cursor()
+#테이블 생성하기
+cur.execute("DROP TABLE items")
+cur.execute(
+    '''CREATE TABLE items(
+        item_id INTEGER PRIMARY KEY AUTO_INCREMENT,
+        name TEXT,
+        price INTEGER
+    )'''
+)
+
+#데이터 추가
+data = [('Banana', 300), ('Mango', 640), ('Kiwi', 280)]
+for i in data:
+    cur.execute("INSERT INTO items(name, price) VALUES(%s, %s)", i)
+
+#데이터 추출
+cur.execute("SELECT * FROM items")
+for row in cur.fetchall():
+    print(row)
+
+실행 결과입니다.
+$ python3 test.py
+(1, 'Banana', 300)
+(2, 'Mango', 640)
+(3, 'Kiwi', 280)
+
+---------------------------------------------------------------------------------------
+
+☞ TinyDB ☜
+
+다음은 NoSQL 종류 중 TinyDB를 실습해보겠습니다. 
+대표적인 MongoDB를 하지 않는 이유는 따로 설치해야 하지만,
+TinyDB는 pip으로 패키지만 설치하면 곧바로 사용할 수 있습니다.
+
+TinyDB를 이용하여 데이터베이스 연결, 테이블 제거, 생성, 추출, 모든 데이터 추출, 특정 데이터 추출, 조건부 추출을 해보겠습니다.
+
+#test.py
+from tinydb import TinyDB, Query
+
+#데이터베이스 연결
+db = TinyDB("test.json")
+
+#기존의 테이블이 있다면 제거
+db.purge_table('fruits')
+
+#테이블 생성/추출
+table = db.table('fruits')
+table.insert({'name' : 'banana', 'price' : 6000})
+table.insert({'name' : 'Orange', 'price' : 12000})
+table.insert({'name' : 'Mango', 'price' : 8400})
+
+#모든 데이터를 추출해 출력
+print(table.all())
+
+#특정 데이터 추출
+#Orange 검색
+Item = Query()
+res = table.search(Item.name == 'Orange')
+print('Orange is ', res[0]['price'])
+
+#가격이 8000원 이상인 것 추출
+print("8000원 이상인 것:")
+res = table.search(Item.price >= 8000)
+for it in res:
+    print("-", it['name'])
+
+
+$python3 test.py
+[{'name' : 'Banana', price : 6000}, {'name' : 'Orange', price : 12000},
+{'name' : 'Mango', price : 8400}]
+Orange is 12000
+8000원 이상인 것:
+- Orange
+-Mange
+
+===========================================================
+
+파일명 : 1db_count_rows.py
+
+#!/usr/bin/env python3
+import sqlite3
+
+
+# 메모리에 SQLite3 database를 만든다.
+# 네 가지 속성을 지닌 sales 테이블을 만든다.
+
+con = sqlite3.connect(':memory:')
+query = """CREATE TABLE sales
+			(customer VARCHAR(20), 
+			 product VARCHAR(40),
+			 amount FLOAT,
+			 date DATE);"""
+con.execute(query)
+con.commit()
+
+
+# sales 테이블에 데이터를 삽입한다.
+
+data = [('Richard Lucas', 'Notepad', 2.50, '2014-01-02'),
+		('Jenny Kim', 'Binder', 4.15, '2014-01-15'),
+		('Svetlana Crow', 'Printer', 155.75, '2014-02-03'),
+		('Stephen Randolph', 'Computer', 679.40, '2014-02-20')]
+statement = "INSERT INTO sales VALUES(?, ?, ?, ?)"
+con.executemany(statement, data)
+con.commit()
+
+
+# sales table에 질의한다
+cursor = con.execute("SELECT * FROM sales")
+rows = cursor.fetchall()
+
+
+# 출력된 데이터의 수를 센다.
+row_counter = 0
+for row in rows:
+	print(row)
+	row_counter += 1
+print('Number of rows: {}'.format(row_counter))
+
+
+
+이 코드를 보면 csv 파일이 나 스프레드시트 대신 데이터 베이스와 상호 작용하기 위해 필요한
+몇 가지 문법을 미리 확인할 수 있다. 2 행에서 sqlite3 모듈을 임포트한다. 
+이 모듈은 별도의 서버 처리 과정이 필요 없는 디스크 기반의 가벼운 데이터 베이스를 제공하고, 여러 종류의 SQL 쿼리 언어를 사용하여 데이터 베이스에 접근할 수 있게 해준다. 이 예제에 등장하는 SQL 명령어들은 모두 대문자로 작성 되었다. 이 장은 파이썬내에서 데이터 베이스와 연동하는 것에 대한 내용이기 때문에, 일반적인 데이터 베이스 명령어인 CRUD (생성, 읽기, 갱신, 삭제)에 대해 다룰 것이다. 즉 데이터 베이스와 테이블을 만들고 (생성) 테이블에 레코드를 갱신하고 ( 갱신), 테이블에 있는 특정행을 선택하는 것(읽기) 등이 그 예다. 
+이러한 SQL 명령어들은 많은 관계형 데이터 베이스에서 흔히 사용된다.
+이 모듈을 이용하려면 우선 데이터 베이스를 나타내는 접속 객체를 생성 해야 한다. 
+
+6행에서 데이터베이스를 나타내는 con이라 부르는 접속 객제를 만든다. 
+이 예제에서는 특별한 명칭인: memory: 를 사용하여 RAM 내에 데이터베이스를 생성 했다. 
+만약 데이터베이스를 지속시키려면 다른 문자열을 사용해야 한다. 
+예를 들어 :memo ry : 대신 my_database.db라든가 c:\Users\Clinton\Desktop\my_database. db 같은 문자열을 사용한다면 이 데이터베이스 객체는 현재 디렉토리 또는 바탕화면 폴더에 저장될 것이다.
+
+7 ∼11행은 삼중 큰따옴표 ( """ ) 를 이용하여 여러 줄에 걸쳐 단일 문자열을 만들고 변수 query
+에 할당한다. 이 문자열이 바로 SQL 명령어로서, 이 명령은 데이터베이스에 sales라는 테이블
+을 만들며, sales 테이블은 customer, product, amount , date라는 이름의 4가지 속성을 지닌다. customer 속성은 최대 길이가 20자인 문자열 필드다. product 속성도 최대 40자 길이의 문자열 필드이다. amount 속성은 실수 형식 필드이며, date 속성은 날짜 형식 필드이다.
+
+12행에서 접속 객체의 execute() 함수를 사용하여 query 변수에 들어 있는 SQL 명령어를 실행한다. 이 명령어를 실행하면 앞에서 말했듯 인메모리 데이터베이스 내에 sales 테이블이 만들어 진다.
+
+13행에서 접속 객체의 commit() 함수를 사용하여 데이터베이스의 변화를 저장한다. 
+데이터베이스를 변경하였다면 변화된 상태를 저장하기 위해 반드시 commit() 함수를 사용해야 한다. 그렇치 않으면 변경된 상태가 데이터베이스에 반영 되지 않는다.
+
+16행에서 튜플로 이루어진 리스트를 만틀어 data라는 변수에 할당한다. 리스트내 각 원소는
+4개의 변수를 포함한 하나의 튜플이다. 4 개 중 3개는 문자열 이고 하나는 실수 값이다. 
+이들 변수는 위치에 따라 각 테이블 속성 (즉 테이블의 4 개 열)에 해당한다. 동시에 각 튜플은 테이블내 하나의 행을 구성 하는 데이터이기도 하다. 
+data 리스트가 4 개의 튜플을 포함하므로 테이블은 4행의 데이터를 포함하게 된다.
+
+20행은 7행과 마찬가지로 문자열을 생성하고 statement 변수에 이 문자열을 할당한다 . 
+이 문자열은 한 줄로 작성 되었기 때문에 7 행처럼 여러 줄 작성용 삼중 큰따옴표 대신 그냥 큰따옴표를 사용해 문자열을 할당했다. 이 문자열 역시 SQL 명령어로서, data 변수에 포함된 여러 행
+의 데이터를 sales 테이블에 삽입하기 위한 INSERT 구문 이다. 이러한 구문을 처음 보았다면 문
+자열에서 물음표(?)가 어떤 의미인지 궁금할 것이다. 이 물음표들은 SQL 명령어에서 사용하려는 변수들의 위치를 표시하는 플레이스홀더 역할을 한다. 이어서 연결 객체의 execute( ) 또는 executemany() 함수에 변수들로 구성된 튜플을 전달하고, 이때 튜플 내의 각 변수가 SQL
+명령어내 위치에 대입 된다. 이처럼 물음표를 통해 인수를 대입 하는 방법은 문자열 조작만으로
+SQL 명령어를 작성 하는 것에 비해 SQL 인젝 션에덜 취약하다. 
+
+21행에서 연결 객체의 executemany( ) 함수를 이용하여 data에 포함된 모든 튜플 데이터에 대해 statement 에 있는 SQL 명령어를 실행한다. data에는 네 개의 튜플이 있으므로, executemany( ) 함수는 네 번의 INSERT 명령을 실행하여 sales 테이블에 네 행의 데이터를 삽입 한다.
+
+기억 해야 할 것은 13 행에서 살펴봤듯 데이터 베이스에 변경을 가한 뒤에는 반드시 commit( ) 함수를 사용해야 한다는 것이다. 그렇치 않으면 데이터 베이스에 변경 내용을 저장할 수 없다. 
+sales 테이블에 네 행을 삽입하는 것은 명확히 데이터 베이스에 변화를 주는 것이기 때문에,  
+
+22 행에서 다시 한번 commit 함수를 써서 데이터 베이스에 변화를 저장한다.
+지금까지 인메모리 데이터 베이스의 sales 테이블을 만들고 여기에 네 개의 데이터를 입력 했다 . 
+
+이제 데이터 베이스 테이블로부터 데이터를 얻는 방법을 알아보자. 
+
+25행은 한 줄의 SQL 명령어를 실행하려면 execute 함수를 이용하고, 그 결과를 cursor라는 커서객체에 할당한다.
+
+커서 객체에는 execute, executemany, fetchone, fetchmany, fetchall 등 여러 함수가 있다. execute 함수로 실행한 SQL 명령어의 모든 결과물을 보거나 조작하는 것이 우리가 주로 하는 일이기 때문에, 모든 결과 데이터를 반환하는 fetchall( ) 함수를 흔히 이용하게 될 것이다.
+
+26행에서 이 코드를 구현한다. 
+
+25행에서 실행한 SQL 명령어의 모든 결과 데이터를 반환하든 fetchall( ) 함수를 사용해 rows라는 리스트 변수에 이 데이터를 할당했다. 다시 밀녕H rows 변수는 2 5 행 에 쓴 SQL 명 령 어 에 대한 모든 결과 데이터를 가진다. 데이터의 각 요소는 변수들로 구성된 튜플이고 rows는 튜플들로 이루어진  리스트이다. 이 경우 sales 테이블이 네 개의 행 데이터를 포함하고 있다는 것과 SQL 명령어가 sales 테이블로부터 모든 데이터를 선택했다는 것을 알고 있기 때문에 rows가 네 개의 튜플로 이루어진 리스트라는 것을 알 수 있다.
+
+마지막으로 29∼32행에서는 rows에 있는 데이터의 수를 세기 위해 row counter 변수를 생성
+하고,  for 문으로 rows의 각 데이터를 순회 하며 rows 내 데이터 수만큼 row_counter의 값을
+증가 시킨다.  for문이 종료된 후에는 명령 프롬프트(또는 터미널) 창에 Number of rows : 라는
+문자열과 row_counter의 값을 출력 한다. 
+
+앞서 말했던 것처럼, rows 에는 네 개의 행 데이터가 있다고 나올 것이다.
+이 파이썬 스크립트를 실행하려면 운영 체제에 따라 다음과 같이 입력하고 엔터 키를 누른다.
+
+윈도우에서는
+python 1db_count_rows.py
+
+
+출력 결과를 보면 sales 테이블에 네 개의 레코드가 있다는 것을 알 수 있다. 
+
+------------------------------------------------------------------------------------------------
+
+☞ 테이블에 새 레코드 삽입하기 ☜
+
+파일명 : 2db_insert_rows.py
+
+#!/usr/bin/env python3
+import csv
+import sqlite3
+import sys
+
+# CSV 입력 파일의 경로와 파일명
+input_file = sys.argv[1]
+
+# 메모리에 SQLite3 database를 만든다
+# 다섯 가지 속성을 지닌 Supplier 테이블을 만든다.
+
+con = sqlite3.connect('Suppliers.db')
+c = con.cursor()
+create_table = """CREATE TABLE IF NOT EXISTS Suppliers
+				(Supplier_Name VARCHAR(20), 
+				Invoice_Number VARCHAR(20),
+				Part_Number VARCHAR(20),
+				Cost FLOAT,
+				Purchase_Date DATE);"""
+c.execute(create_table)
+con.commit()
+
+
+# CSV 파일을 읽는다.
+# 읽은 데이터를 Suppliers table에 삽입한다.
+
+file_reader = csv.reader(open(input_file, 'r'), delimiter=',')
+header = next(file_reader, None)
+for row in file_reader:
+	data = []
+	for column_index in range(len(header)):
+		data.append(row[column_index])
+	print(data)
+	c.execute("INSERT INTO Suppliers VALUES (?, ?, ?, ?, ?);", data)
+con.commit()
+
+
+# Suppliers table에 질의한다.
+output = c.execute("SELECT * FROM Suppliers")
+rows = output.fetchall()
+for row in rows:
+	output = []
+	for column_index in range(len(row)):
+		output.append(str(row[column_index]))
+	print(output)
+
+
+이 스크립트는 csv외 sys 모듈을 사용한다. 
+
+2행에서 csv 모듈을 임포트해서 csv 입력 파일을 읽고 파싱 하는 함수들을 사용할 수 있게 한다. 
+
+4행은 sys 모듈을 임포트하여 파일 경로와 파일명을 명령 줄에서 받아 올 수 있게 한다 . 
+
+3행은 s qlite3 모듈을 임포트해서 간단한 로컬 데이터베이스와 테이블을 만들고 SQL 쿼리를 실행할 수 있는 함수들을 사용할수 있 게 한다.
+
+7행에서는 sys 모듈을 사용하여 명령 줄에서 파일 경로와 파일명을 읽어온 후, input file 변수에 그값을 할당한다.
+
+11행에서 Suppliers.db 라는 간단한 로컬 데이터 베이스에 연결을 한다. 
+여기에서는 :memo ry : 키워드를 사용하는 대신 데이터베이스 명칭을 제공했다. 
+이렇게 하면 컴퓨터를 재시작하더 라도 지워지지 않고 유지되는 데이터베이스를 만들 수 있다. 
+바탕화면 폴더에 스크립트를 저장했다면 Suppliers.db 도 바탕화면 폴더에 저장될 것이다. 
+데이터베이스를 다른 위치에 저장하고 싶다면‘ Suppliers.db 대신 C:\Users\사용자명\Documents\Suppliers.db와 같은 식으로 원하는 경로를 사용하면 된다.
+
+12∼18행에서는 커서 객체와 여러 줄로 된 SQL 문을 만든다. 이 SQL 문은 다섯 가지 속성을 지닌 Suppliers라는 테이블을 만든다. 이 SQL 문을 실행하고, 변경된 정보를 데이터베이스에 저장한다.
+
+24∼32행에서는 두 가지 작업을 수행한다. 
+하나는 데이터베이스 테이블에 입력할 데이터를 csv 입력 파일로부터 읽어오는 것이고, 
+다른 하나는 읽어온 데이더의 각 행별로 SQL 문을 실행하여 데이터 베이스 테이블에 삽입 하는 것이다. 
+
+24행은 csv 모듈을 이용하여 file_reader 객체를 만든다. 
+
+25행은 next() 함수를 사용하여 입력 파일의 첫 번째 행을 읽고 header 라는 변수에 그 값을 할당한다. 
+
+26행 에서는 for 문이 시작되어 입력 파일의 모든 행을 반복 처리한다. 
+
+27행은 data 라는 빈 리스트 변수를 만든다. 
+입력 데이터의 각 행별로, 이 data 변수에 31행 INSERT 구문에 필요한 값들을 채울 것이다. 
+
+28행은 각 행의 모든 속성을 반복 처리할 for문 이다. 
+
+29행은 리스트의 append( ) 함수를 이용하여 입력 파일 각 행의 모든 값을 data 변수에 채운다. 
+
+30행에서는 data 변수에 추가된 해당 행 데이터들 명령 프롬프트나 터미널 창에 출력한다. 
+이 줄은 들여 쓰기에 주의 해야 한다. 
+입력 데이터의 모든 행과 모든 속성 대신 모든 행에 대해 나타나야 하기 때문에, 
+이 줄의 들여쓰기는 내부 for 문이 아닌 외부 for문에 맞춰져야 한다. 
+이 줄은 디버깅을 히는 데 도움이 된다. 
+하지만 코드가 정확하게 작동할 것이라고 확신한다면, 
+화면에 많은 출력 결과물을 표시 하지 않기 위해 이 줄을 지우거나 주석 으로 처리해도 된다.
+
+31행에서 실제로 데이터 베이스 테이블에 각 행별 데이터를 입력한다. 이 줄은 커서 객체의 execute() 함수를 이용하여 Suppliers 테이블에 한 행의 변수들을 입력하는 INSERT 구문을 실행한다. 
+이 구문의 물음표들은 입력할 각 변수들의 위치를 표시 하는 플레이스홀더이다. 
+
+물음표의 수는 입력 파일에 있는 열의 수와 일치해야 하고, 테이블의 열의 수와 일치해야 한다. 
+또한, 입력 파일내 열의 순서는 테이블내 열의 순서와 일치해야 한다. 
+물음표의 위치에 대입되는 값들은 execute( ) 함수 내 쉼표 뒤에 있는 data 변수에 할당된 값 리스트에 들어 있다. 
+
+입력 파일 데이터의 각 행별로 data 변수에 값들이 채워지고 이에 대해 INSERT 구문이 실행되므로 이 코드는 효과적으로 입력 파일로부터 데이터 행들을 읽은 후 데이터 베이스 테이블에 채운다. 
+
+마지막으로 32행에서 이 데이터 베이스에 변경된 정보를 저장하기 위해 commit( ) 문을 수행한다.
+
+36∼42행은 Suppliers 테이블의 모든 데이터를 선택하고 그 결과를 명령 프롬프트나 터미널 창에 출력하는 방법을 보여준다. 
+
+36∼37행은 Suppliers 테이블의 모든 데이터를 선택하는 SQL 문을 실행하고, 그 결과 (output )의 행들을 변수 rows 에 가져 온다. 
+
+38행은 rows 변수의 각 행들을 반복 처리하는 for문이다. 
+
+40행은 각 행의 열(속성)에 대해 반복 처리하는 for문이다. 
+
+41행은 output이라는 리스트에 각행의 값들을 추가한다. 
+
+마지 막으로 42행의 Print 문은 SQL 문을 실행한 결과의 각 행을 새로운 줄에 출력한다.
+(들여쓰기를 보면 이 줄은 열이 아닌 행에 해당하는 for 문에 걸린다)
+
+이제 데이터베이스 테이블에 입력할 csv 파일만 있으면 된다.
+
+파이썬 스크립트와 csv 입력 파일이 준비 되었다면 Suppliers 데이터베이스 테이블에 csv 입력 파일의 데이터를 입력해보겠다. 명령 줄에 다음을 입력하고 엔터 키를 누른다.
+
+# python 2db_insert_rows.py supplier_data.csv
+
+csv 입력 파일의 헤더 행을 제외한 12 행의 데이터로부터 생성된 12개의 리스트 값들이 출력되었다. 입력 데이터로부터 생성된 12 개의 리스트 아래에는 빈 행이 하나 있고, 이어서 데이터 베이스 테이블로부터 불러온 행들에 대한 12 개의 리스트가 출력 되었다.
+
+--------------------------------------------------------------------------------------------------
+
+테이블 내 레코드 갱신하기
+
+파일명 :  3db_update_rows
+
+#!/usr/bin/env python3
+import csv
+import sqlite3
+import sys
+
+# Path to and name of a CSV input file
+input_file = sys.argv[1]
+
+# Create an in-memory SQLite3 database
+# Create a table called sales with four attributes
+con = sqlite3.connect(':memory:')
+query = """CREATE TABLE IF NOT EXISTS sales
+			(customer VARCHAR(20), 
+				product VARCHAR(40),
+				amount FLOAT,
+				date DATE);"""
+con.execute(query)
+con.commit()
+
+# Insert a few rows of data into the table
+data = [('Richard Lucas', 'Notepad', 2.50, '2014-01-02'),
+		('Jenny Kim', 'Binder', 4.15, '2014-01-15'),
+		('Svetlana Crow', 'Printer', 155.75, '2014-02-03'),
+		('Stephen Randolph', 'Computer', 679.40, '2014-02-20')]
+for tuple in data:
+	print(tuple)
+statement = "INSERT INTO sales VALUES(?, ?, ?, ?)"
+con.executemany(statement, data)
+con.commit()
+	
+# Read the CSV file and update the specific rows
+file_reader = csv.reader(open(input_file, 'r'), delimiter=',')
+header = next(file_reader, None)
+for row in file_reader:
+	data = []
+	for column_index in range(len(header)):
+		data.append(row[column_index])
+	print(data)
+	con.execute("UPDATE sales SET amount=?, date=? WHERE customer=?;", data)
+con.commit()
+
+# Query the sales table
+cursor = con.execute("SELECT * FROM sales")
+rows = cursor.fetchall()
+for row in rows:
+	output = []
+	for column_index in range(len(row)):
+		output.append(str(row[column_index]))
+	print(output)
+
+
+2 ∼ 4행에서 세 개의 내장 모듈을 임포트해서 명령 줄의 입력을 읽고, csv 입력 파일을 읽고, 
+인메모리 데이터 베이스 및 테이블과 상호작용할 수 있게 했다. 
+
+7행은 csv 입력 파일을 input_ file 변수에 할당한다.
+
+11 ∼ 18행에서 네 가지 열 속성을 가진 sales 테이블과 인메모리 데이터 베이스를 만든다.
+
+21 ∼29행에서 sales 테이블에 네 개의 레코드 집합을 만들고, 이 레코드들을 테이블에 입력 한다. 
+이 중 Richard Lucas와 Jenny Kim에 대한 레포드를 잠시 살펴 보자. 
+
+두 레코드는 뒤에서 갱신할 대상이다. 
+여기에서 네 개 의 레코드가 들어 있는 sales 테이블은 실제 회사에서 쓰이는 일반적 인테이블들과 유사하다. 
+
+32 ∼ 40행은 이전 예제의 코드와 거의 동일하다. 한 가지 큰 차이점이 35행에 있는데 , UPDATE문이 기존의 INSERT 문을 대체 했다. UPDATE문은 갱신하고 싶은 레코드와 열 속성을 지정 해야 한다. 
+이 예제 에서는 특정 고객(customer)의 amount와 date 값을 갱신하려고 한다. 
+이전 예제 처럼 쿼리 내 값들의 위치를 가리키는 물음표 플레이스홀더들이 있어야 하며, 
+csv 입력 파일의 데이터 순서는 쿼리 내 속성들의 순서와 동일해야 한다. 
+여기에선 왼쪽에서 오른쪽 순서 대로 쿼 리 내 속성은 amount, date, customer 이다. 
+따라서 csv 입력 파일에 있는 열들의 순서도 왼쪽에서부터 오른쪽으로 amount, date, customer여야 한다.
+
+마지막으로 43∼49행은 이전 예제의 코드와 거의 동일하다. 
+이 코드들은 sales 테이블의 모든 행들을 불러오고, 각 열 값들 사이에 공백문자를 추가하여 명령 프롬프트나 터미널 창에 각 행을 출력 한다.
+
+이제 데이터 베이스 테이블의 특정 레코드를 갱신할 데이터가 포함된 csv 입력 파일이 필요하다. 
+
+아래 순서에 따라 파일을 만들어보자.
+1. 스프레드시트를 연다.
+2. 다음과 같이 데이터를 추가 한다
+
+	A		B		C
+1	amount		date		customer
+2	4.25		5/11/2014		Richard Lucas
+3	6.75		5/12/2014		Jenny Kim	
+
+
+3. 이 파일을 data_for_updating.csv로 저장한다.
+
+
+명령줄에서 실행한다.
+
+# python 3db_update_rows.py data_for_updating.csv
+
+
+
+결과의 첫 네 행(튜플)은 초기 데이터이고, 다음 두 행(리스트)은 CSV 파일로부터 읽어온 데이터이다. 
+
+마지막 네 행은 특정 행을 갱신한 후 데이터베이스 테이블로부터 가져온 데이터이다.
+
+위 결과는 초기 데이터의 4행을 보여주고, 이어서 데이터베이스에 갱신될 값들이 담긴 리스트 두 개를 보여준다. 
+이는 먼저 Richard Lucas 례코드에서 새로운 amount 값은 4.25가 될 것이고, 
+date 값은 5/11/2014가 된다는 것을 보여 준다. 
+
+다음으로Jenny Kim 레코드에서 새 amount 값이 6.75가 되고 date 값은 5/12/2014가 될 것이다.
+
+두 갱신될 리스트 아래에 출력물은 갱신이 된 후 데이터베이스 테이블로부터 가져온 4행을 보여준다. 
+
+각 행이 한 줄마다 출력 되고, 해당 행의 값들은 공백문자로 나뉘어 있다. 
+
+Richard Lucas에 대한 amount와 date의 기존 값은 각각 2.5와 2014-01-02 였다. 
+
+마찬가지로 Jenny Kim에 대한 amount와 date의 기존 값은 각각 4. 15 와 2014-01-15 였다.
+ 
+csv 입력 파일에서 제공된 새로운 값을 반영 하여 Richard Lucas와 Jenny Kim의 두 값이 갱신되었다. 
+
+이 예제는 특정 레코드를 갱신하기 위한 데이터가 포함된 csv 입력 파일을 이용하여 기존 데이터베이스 테이블의 레코드들을 대규모로 갱신하는 방법을 보여 준다.
+
+----------------------------------------------------------------------------------------------------------------------
+
+실습을 위해 mysqlclient 패키지를 설치한다.
+
+# pip install mysqlclient
+
+mysqlclient 패키지는  파이썬이 데이터베이스 또는 데이터베이스의 개별 테이블과 상호작용할 수 있도록 해준다.
+
+# mysql -u root -p
+Enter password:
+
+
+mysql> show databases;
+
+mysql> create database my_suppliers;
+
+mysql> use my_suppliers;
+
+mysql> CREATE TABLE IF NOT EXISTS Suppliers
+(Supplie_Name VARCHAR( 20),
+Invoice_Number VARCHAR (20),
+Part_Number VARCHAR(20),
+Cost FLOAT,
+Purchase Date DATE) ;
+
+
+mysql> describe Suppliers;
+
+mysql> create user '계정명'@'localhost' identified by 'secret_password';
+
+mysql> grant all privileges on my_suppliers.* to '계정명'@'localhost';
+
+mysql> 
+
+
+테이블에 세 레코드 입력하기
+
+파일명 :  4db_mysql_load_from_csv.py
+
+
+#!/usr/bin/env python3
+import csv
+import MySQLdb
+import sys
+from datetime import datetime, date
+
+# Path to and name of a CSV input file
+input_file = sys.argv[1]
+
+# Connect to a MySQL database
+con = MySQLdb.connect(host='localhost', port=3306, db='my_suppliers', user='python_training', passwd='python_training')
+c = con.cursor()
+
+# Read the CSV file
+# Insert the data into the Suppliers table
+file_reader = csv.reader(open(input_file, 'r'), delimiter=',')
+header = next(file_reader)
+for row in file_reader:
+	data = []
+	for column_index in range(len(header)):
+		if column_index < 4:
+			data.append(str(row[column_index]).lstrip('$')\
+			.replace(',', '').strip())
+		else:
+			a_date = datetime.date(datetime.strptime(\
+			str(row[column_index]), '%m/%d/%Y'))
+			# %Y: year is 2016; %y: year is 15
+			a_date = a_date.strftime('%Y-%m-%d')
+			data.append(a_date)
+	print(data)
+	c.execute("""INSERT INTO Suppliers VALUES (%s, %s, %s, %s, %s);""", data)
+con.commit()
+
+# Query the Suppliers table
+c.execute("SELECT * FROM Suppliers")
+rows = c.fetchall()
+for row in rows:
+	row_list_output = []
+	for column_index in range(len(row)):
+		row_list_output.append(str(row[column_index]))
+	print(row_list_output)
+
+
+2장에서 작성한 스크립트처럼 이 스크립트는 csv, datetime , sys 모듈을 사용한다. 
+
+2행은 csv 파일을 읽고 파싱하는 함수를 시용하기 위해 csv 모듈을 임포트한다. 
+
+4행은 이 스크립트에서 사용할 파일명과 경로를 명령줄로부터 읽어오기 위해 sys 모듈을 임포트한다. 
+
+5행은 날짜(입력 파일의 마지막 열) 를 다루고 포매팅 하기 위해 datetime 모듈에서 date와 datetime 함수를 임포트한다. 데이터 베이스 테이블의 열에는 실수만 허용되므로 달러 기호($)와 쉼표를 제거 할 필요가 있다. 
+
+3 행에서는 앞서 다운로드하고 설치한 MySQLdb 모듈을 임포트해서 MySQL 데이터 베이스와 테이블에 연결하는 함수를 사용할 수 있게 한다.
+
+8행에서 sys 모듈을 이용하여 명령 줄에서 파일의 경로와 이름을 읽어오고 input_file 변수에 할당한다.
+
+11 행에서 MySQLdb 모듈의 connect 함수를 이용하여 앞 절에서 만든 my_suppliers 데이터 베이스에 접속한다. 
+
+인플레이스로 읽고 수정하고 삭제할 수 있는 csv 또는 엑셀 파일 작업과는 다르게, MySQL은 마치 별도의 컴퓨터 (‘서 버’ 라고 한다) 처럼 우리가 접속하거나 데이터를 주고받을 수 있는 데이터 베이스를 준비 해준다. 
+
+데이터 베이스에 접속하기 위해서는 host, port, db‘ user ‘ passwd 등 일반적인 인수들을 설정해야 한다.
+
+host는 데이터베이스가 위치한 컴퓨터의 호스트 주소 이다. 
+
+여기서는 MySQL 서버가 개인 컴퓨터에 설치 되었기 때문에, host는 localhost 값을 갖는다. 
+
+다른 데이터베이스에 접근할 때는 서버가 다른 컴퓨터에 있으므로 localhost 대신 그 서버의 호스트 주소로 변경해야 한다.
+
+port는 MySQL 서버의 TCP/IP 접속을 위한 포트 번호이다. 
+
+앞으로 사용할 포트 번호는 기본적으로 3306이다. 
+
+host 인수와 마찬가지로 개인 컴퓨터에서 작업하지 않는 경우 해당 서버 MySQL 서버 관리자가 다른 포트 번호를 설정 했다면, 해당 서버에 접속하기 위한 포트 번호도 변경 해주어야 한다. 
+
+이 예제 에서는 MySQL 서버를 기본 값으로 설치 했기 때문에, 호스트 주소와 포트 번호는 localhost와 3306을 사용하면 된다.
+
+db는 접속할 데이터 베이스의 이름이다. 
+
+이 예제에서 우리는 데이터를 입력할 테이블이 담긴 my_suppliers 데이터 베이스에 접속할 것이다. 
+추후에 개인 컴퓨터에서, 예를 들어 contacts라는 다른 데이터 베이스를 만든다면 db를 my_suppliers 대신 contacts로 변경해야 할 것이다. user는 데이터 베이스에 접속할 시용자 이름이다. 
+
+이 예제에서는 처음 MySQL 서버를 설치할 때 만든 '루트' 계정과 비밀번호로 접속했다. 
+MySQL을 설치할 때 , 루트 계정에 대한 비밀번호를 설정 했을 것이다. 
+설정한 passwd 인수에 값을 넣어준다. 
+
+MySQL을 설치할 때 루트 비밀번호를 다른 문자열로 설정 했다면, 
+이 코드의 my_password 부분을 해당 비밀번호로 변경해야 한다.
+
+지금까지 설명한 다섯 가지 인수로 my_suppliers 로컬 데이터베이스에 접속하겠다.
+
+12행은 커서를 만들어서 my_suppliers 데이터 베이스의 Suppliers 테이블에서 SQL 문을 실행하고 그 변화를 데이터 베 이스에 저장하는데 이용할 수 있게 한다.
+
+16∼32 행 에서 데이터 베이스 테이블에 저장하기 위한 데이터를 csv 파일로부터 읽어 오고, 이 데이터의 각 행을 데이터 베이스 테이블에 입력하는 SQL 문을 실행한다. 
+
+16행에서는 csv 모듈을 이용하여 file_reader 객체를 만든다. 
+
+17행 에서는 next( ) 함수를 이용하여 입력 파일의 첫 행인 헤더 정보를 읽어온 후 header 변수에 헐당한다. 
+
+18행은 입력 피일의 모든 행을 반복 처리하기 위한 for 문이다. 
+
+19행은 data 라는 빈 리스트 변수를 만든다. 
+
+각 입력행에 대해 31 행의 INSERT 문에서 필요한 값들을 data 에 채울 것이다. 
+
+20행은 각 행에 있는 모든 열들을 반복 처리하기 위한 for 문이다. 
+
+2 1 행은 if-else 문은 해당 열 인덱스가 4보다 작은지 확인한다. 
+입력 파일은 다섯 개의 열인데 이 중 날짜 정보는 다섯 번째 열에 있으므로 날짜 열의 인덱스는 4 이다. 
+따라서 이 줄에서는 마지막 날짜 열 앞에 있는 열들을 처리할지 여부를 판단한다.
+
+22행에서는 0, 1, 2, 3의 인덱스 값을 지난 열에 대해 실행된다. 
+해당 열의 값을 문자열로 변환하고, 달러 기호가 있으면 이를 제거하고, 리스트 변수인 data에 저장한다. 
+
+25행은 인덱스 값이 4 인 마지막 날짜 열을 문자열로 바꾸고 입력 형식에 따라 해당 문자열을 date time 객체로 만든 후. datetime 객체를 date 객체 (이 객체는 오직 년, 월, 일 요소만 유지 한다) 로 변환하여 a_date 변수에 할당한다. 
+
+다음 28행에서 date 객체를 MySQL 데이터베이스에 입력하기 위해 새로운 입력 형식 (YYYY -MM DD) 의 문자열로 변환하여 다시 a_date 변수에 할당한다. 
+
+마지 막으로 29행에서는 이렇게 변환한 문자열을 data에 저장한다.
+
+30행은 명령 프롬프트/터미널 창에 data에 저장된 데이터 행을 출력한다. 
+
+이 줄은 들여쓰기에 주의 해야 한다. 
+입력 데이터의 모든 행과 모든 속성 대신 모든 행에 대해서만 출력 해야 하기 때문에, 
+이 줄의 들여쓰기는 내부 for 문이 아닌 외부 for 문과 일치해야 한다. 
+이 줄은 디버깅을 하는 데 도움이 된다. 
+하지만 코드가 정확하게 작동할 것이라고 확신한다면, 화면에 많은 출력 결과물을 표시하지 않기 위해 이 줄을 지우거나 주석 처리해도 된다.
+
+31행은 실제로 데이터베이스 테이블에 각 행별 데이터를 입력한다 . 
+이 줄은 커서 객체의 execute() 함수를 이용하여 Suppliers 테이블에 한 행의 변수들을 입력하기 위한 INSERT 구문을 실행한다. 각각의 %s는 입력할 각 변수의 위치를 표시하는 플레이스홀더이다. 
+그 개수는 입력 파일에 있는 열의 수와 일치해야 하고, 테이블의 열의 수와 일치해야 한다. 
+
+또한, 입력 파일내 열의 순서는 테이블내 열의 순서와 일치해야 한다. 
+%s의 위치에 대입되는 값들은 execute () 함수 내 쉼표 뒤에 있는 data 변수에 할당된 값들 리스트에 있다. 
+
+입력 파일 데이터의 각 행별로 data 변수에 값들이 채워지고 INSERT 구문이 실행되기 때문에, 이 코드들은 효과적으로 입력 파일로부터 데이터의 행들을 읽은 후 데이터베이스 테이블에 채운다. 
+여기에서도 들여 쓰기에 주의 해야 한다. 
+
+이 줄의 들여쓰기는 외부 for 문에 맞춰져 있기 때문에, 입력 파일 데이터의 모든 행에 대해 실행된다. 
+
+마지막으로 32행에서 이 데이터베이스에 변경된 정보를 저장하기 위해 commit( ) 문을 수행한다.
+
+36∼42행은 Suppliers 테이블의 모든 데이터를 선택하고 그 결과를 명령 프롬프트나 터미널 창에 출력하는 방법을 보여준다. 
+
+36∼37행은 Suppliers 테이블의 모든 데이터를 선택하는 SQL 문을 실행하고, 그 결과 행들을 변수 rows에 가져온다. 
+
+38행은 rows 변수의 각 행들을 반복 처리히는 for 문이다. 
+
+39행은 row_list_output 이라는 빈 리스트 변수를 만들어서 SQL 쿼리로부터 가져온 각 행들의 값들을 포함시킬 것이다. 
+40행은 각 행의 열(속성 )을 반복 처리하는 for 문이다. 
+
+41 행은 각 열에 있는 값들을 문자열로 변환한 후, row_list_output 변수에 저장한다. 
+
+마지막으로 한 행에 있는 모든 열값이 row_list_output에 저장되고 나면 42 행에서 이 행의 데이터를 화면에 출력 한다.
+
+
+명령줄에서 실행한다.
+
+# python   4db_mysql_load_from_csv.py    supplier_data.csv
+
+
+결과물의 첫번째 부분은 CSV 파일을 파싱한 데이터이고,
+두번째 부분은 데이터베이스 테이블에서 불러온 동일한 데이터이다.
+
+이 결과는 CSV 파일의 헤더 행을 제외한 12개의 데이터로부터 생성된 12개의 리스트를 보여준다.
+리스트는 화면에 출력될 때 각 값들이 쉼표로 구분되고 대괄호 ( [ ] )로 묶여 표현된다.
+
+CSV 파일로부터 읽어온 12개의 입력 데이터 리스트 아래에 빈 행이 하나 있고, 
+이어서 SELECT * FROM Suppliers 쿼리를 통해 데이터베이스 테이블로부터 가져 온 12행의 결과 데이터가 출력되었다. 
+여기서도 각 행은 별도의 줄에 출력되고, 각 행의 값은 쉽표로 구분된다. 
+
+이 결과로부터 데이터가 성공적으로 입력되었고 Suppliers 테이블로부터 읽어온 결과도 동일함을 확인 할수 있다.
+
+다른 방법으로 이 결과를 확인하려면, MySQL 명령줄 클라이언트에서 다음을 입력하고 엔터 키를 누른다.
+
+SELECT * FROM Suppliers;
+
+
+--------------------------------------------------------------------------------------------------------------------------
+
+테이블 검색 및 결과물을 CSV 파일로 출력하기
+
+데이터 베이스 테이블에 데이터를 입력한 다음 취할 일반적인 행동은 비즈니스에 필요하거나 분석에 유용한 특정 데이터를 찾기 위해 해당 테이블을 검색 하는 일이다. 
+
+예를 들어 가장 많은 이익을 주는 고객 이나 특정 기준치를 초과하는 지출 등에 관심이 있을 수 있다.
+
+이제 Suppliers 데이터베이스 테이블에서 특정 레코드를 검색하고, 이 결과를 CSV 파일로 저장하는 파이썬 스크립트를 작성해보자. 
+
+이번 실습에서는 Cost 열이 700보다 큰 레코드를 출력할 것이다.
+
+
+파일명 :  5db_mysql_write_to_file.py
+
+#!/usr/bin/env python3
+import csv
+import MySQLdb
+import sys
+
+# Path to and name of a CSV output file
+output_file = sys.argv[1]
+
+# Connect to a MySQL database
+con = MySQLdb.connect(host='localhost', port=3306, db='my_suppliers', \
+user='root', passwd='my_password')
+c = con.cursor()
+
+# Create a file writer object and write the header row
+filewriter = csv.writer(open(output_file, 'w', newline=''), delimiter=',')
+header = ['Supplier Name','Invoice Number','Part Number','Cost','Purchase Date']
+filewriter.writerow(header)
+
+# Query the Suppliers table and write the output to a CSV file
+c.execute("""SELECT * 
+		FROM Suppliers 
+		WHERE Cost > 700.0;""")
+rows = c.fetchall()
+for row in rows:
+	filewriter.writerow(row)
+
+
+
+2 ∼ 4 행에서 csv, MySQLdb, sys 모듈을 임포트해서 MySQL 데이터 베이스와 상호작용하고 csv 파일에 검색 결과를 출력할 함수를 사용할 수 있게 한다.
+
+7 행에서 sys 모듈을 이용하여 명령줄로부터 입력 파일의 경로와 파일 명을 읽어오고, 
+이 값들을 output file 변수에 할당한다.
+
+10 행에서 MySQLdb의 connect( ) 함수를 이용하여 앞에서 만든 MySQL 데이터 베이스인 my_suppliers에 접속한다. 
+
+10 ∼ 12행에서 데이터 베이스 테이 블에서 SQL 문을 실행하고 그 결과를 저장하기 위한 커서를 만든다.
+
+15 행에서 이 테이블의 열을 나타내는 문자열 다섯 개가 들어 있는 리스트 변수인 header를 만든다. 
+
+16 행에서 filewriter의 writerow() 함수를 사용하여 쉼표로 구분된 이 문자열 리스트를 CSV 형식의 출력 파일에 작성 한다. 데이터베이스 쿼리는 열의 헤더 정보를 제외한 데이터만 출력 하기 때문에, 이 코드로 출력 파일에 헤더 정보를 작성 한다.
+
+2 1 ∼25행은 쿼리의 결괴물을 명령 프롬프트/터미널창에 출력하는 것을 제외하면 이 전 예제와 유사하다. 
+
+25 행을 보면 화면에 출력하는 대신 csv 파일에 결과물을 썼다.
+
+지금까지 Suppliers 데이터 베이스 테이블로부터 특정 데이터를 검색하고 그 결과를 csv 형식 결과 파일로 작성 하는 스크립트를 작성 하였다. 
+
+이를 실행하려면 명령줄에 다음을 입력 하고 엔터 키를 누른다.
+
+# python   5db_mysql_write_to_file.py   5output.csv
+
+
+
+파일을 열어보면,  
+다섯 가지 열로 이루어진 하나의 헤더 행과 데이터 베이스 테이블에서 Cost 열의 값이 700을 넘는 네 개 행이 포함되어 있을 것이다. 엑셀에서 열었다면 Purchase Date 열에 있는 날짜들이 MM/DD/YYYY 같은 형태로 포매팅되었을 것이다. 
+Cost 열에 있는 값들은 쉼표나 달러 기호를 포함하지 않지만, 필요하다면 이 값들을 쉽게 포매팅할 수 있다.
+
+데이터베이스 테이블에서 데이터를 입력하고 검색하는 것은 데이터베이스를 사용할 때 자주 하는 행동들이다. 
+
+또 다른 일반적인 행동은 데이터베이스 테이블에 존재하는 데이터를 갱신하는 것이다.
+
+-----------------------------------------------------------------------------------------------------------------
+
+테이블 내 레코드 갱신하기
+
+CSV 파일을 사용하여 데이터베이스 테이블에 있는 기존 레코드들을 갱신하는 방법을 실습해본다.
+
+
+파일명 :  6db_mysql_update_from_csv.py
+
+
+#!/usr/bin/env python3
+import csv
+import MySQLdb
+import sys
+
+# Path to and name of a CSV input file
+input_file = sys.argv[1]
+
+# Connect to a MySQL database
+con = MySQLdb.connect(host='localhost', port=3306, db='my_suppliers', \
+user='root', passwd='my_password')
+c = con.cursor()
+	
+# Read the CSV file and update the specific rows
+file_reader = csv.reader(open(input_file, 'r', newline=''), delimiter=',')
+header = next(file_reader, None)
+for row in file_reader:
+	data = []
+	for column_index in range(len(header)):
+		data.append(str(row[column_index]).strip())
+	print(data)
+	c.execute("""UPDATE Suppliers SET Cost=%s, Purchase_Date=%s WHERE Supplier_Name=%s;""", data)
+con.commit()
+
+# Query the Suppliers table
+c.execute("SELECT * FROM Suppliers")
+rows = c.fetchall()
+for row in rows:
+	output = []
+	for column_index in range(len(row)):
+		output.append(str(row[column_index]))
+	print(output)
+
+
+
+
+2 ∼ 4행에서 세 개의 내장 모듈을 임포트해서 csv 입력 파일을 읽고, 
+MySQL 데이터 베이스와 상호작용할 수 있고, 명령줄 입력을 읽을 수 있게 한다. 
+
+7 행에서 csv 입력 파일을 input_file 변수에 할당한다.
+
+10 행에서는 이전 예제 들과 동일하게 접속 인수를 이용하여 my_suppliers 데이터 베이스에 접속한다. 
+
+11 행에서는 SQL 문을 실행하고 결과를 데이터 베이스에 저장하기 위한 커서를 만든다.
+
+15 ∼23행도 이전 예제 코드와 거의 동일하다. 
+한 가지 큰 차이점이 22 행에 있는데, UPDATE 문이 기존의 INSERT 문을 대체했다. 
+UPDATE 문은 갱신할 레코드와 속성을 지정 해야 한다. 
+
+이 예제에서는 특정 Supplier Name에 대해 Cost와 Purchase Date 속성을 갱신하려고 한다. 
+
+이전 예제에서 처럼 쿼리 내 값들이 대입  %s 플레이스흘더가 같은 개수 있어야 하며, 
+csv 입력 파일의 데이터 순서도 쿼리 내 속성들의 순서와 동일해야 한다.
+
+여기 에선 왼쪽에서 오른쪽으로 쿼리 내 속성은 Cost, Purchase Date, Supplier Name이다. 
+따라서 csv 입력 파일에 있는 열들의 순서도 왼쪽에서부터 오른쪽으로 Cost, Purchase Date, Supplier Name 이어야 한다.
+
+마지막으로 26∼32행의 코드도 앞에서 본 예제 마지막 부분과 거의 동일하다. 
+
+이 코드들은 Suppliers 테이블의 모든 행을 불러오고, 
+각 열 사이에 공백문자를 넣어 명령 프롬프트나 터미널 창에 각 행을 출력한다.
+
+이제 데이터베이스 테이블에서 갱신할 레코드가 들어 있는 csv 입력 파일이 필요하다. 
+
+아래 순서에 따라 파일을 만들어 보자.
+
+(1) 엑셀을 실행한다.
+(2) 데이터를 추가한다.
+  Cost 	Purchase Date	Supplier Name
+  600      2014-01-25	Supplier X
+  200 	2014-02-01	Supplier Y
+
+(3) data_for_updating_mysql.csv로 저장한다.
+
+
+
+
+명령줄에서 다음을 실행한다.
+
+# python   6db_mysql_update_from_csv.py   data_for_updating_mysql.csv
+
+
+처음 두 행은 CSV 파일에 있는 데이터이고, 나머진느 행들을 갱신한 후 데이터베이스 테이블로부터 가져온 데이터이다.
+
+위 결과는 csv 파일의 헤더 행을 제외한 두 행으로부터 생성된 2 개의 리스트를 보여준다. 
+리스트는 화면에 출력될 때 각 값들이 쉼표로 구분되고 대괄호 ( [ ] ) 로 묶여 표현된다. 
+
+Supplier X의 Cost 값은 600 이고, Purchase Date는 2014-01-22 이다. 
+Supplier Y의 Cost 값은 200 이고, Purchase Date는 2014-02-01 이다.
+
+두 리스트 아래 에는 갱신 후 데이터 베이스 테이블로부터 가져온 12 행의 데이터가 있다. 
+
+각 행은 새로운 행에 출력 되고 각 행의 값은 쉼표로 구분된다. 
+
+Supplier X의 기존 Cost는 500과 750, Purchase Date는 2014-01-20 이였다는 것을 떠올려보자
+
+마찬가지로, Supplier Y의 기존 Cost는 250과 125, Purchase Date는 2014-01-30과 2013-02-03 이었다. 
+
+이번 예제를 실행한 결과를 보면 csv 입력 파일에 포함된 새로운 값들이 Supplier X와 Supplier Y의 데이터에 반영 되어 갱신되었다.
+
+Supplier X와 Supplier Y를 포함한 8개 행의 데이터가 MySQL 데이터베이스 테이블에 갱신된 것을 확인하기 위해 MySQL 명령 줄 클라이언트에서 다음을 입력하고 엔터키를 누른다.
+
+mysql> SELECT * FROM Suppliers;
+
+
+Suppliers 테이블에 있는 열들과 각 열에 해당하는 12개 행이 나열된 표가 출력 될 것이다. 
+
+Supplier X와 Supplier Y와 관련된 8 개의 행이 csv 입력 파일의 데이터로 갱신된 것을 확인할 수 있다.
+
+
+
+
+
+
+
+
+
+
+

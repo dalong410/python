@@ -1,0 +1,15 @@
+import sqllite3
+
+connect = sqllite3.connect(host = '192.168.101.200',
+	port = 3306,
+	user = 'user0',
+	password = '012345',
+	db = 'shopping_db')
+
+cursor = connect.cursor()
+sql = 'SELECT * FROM customer WHERE age >= 24'
+cursor.execute(sql)
+result = cursor.fetchall()
+
+for item in result:
+	print(item)

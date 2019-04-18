@@ -1,0 +1,16 @@
+19대 선택
+driver.find_element_by_id("electionName").send_keys("제19대")
+
+----------------------------------------
+대통령선거
+driver.find_element_by_id("electionCode").send_keys("대통령선거")
+
+---------------------
+
+시도 선택
+
+city_list_raw = driver.find_element_by_xpath("""//*[@id="cityCode"]""")
+city_list=city_list_raw.find_elements_by_tag_name("option")
+city_names = [option.text for option in city_list]
+city_names = city_names[2:]
+print(city_names)

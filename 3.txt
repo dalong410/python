@@ -1,0 +1,77 @@
+0. 크롤링 한글 환경설정
+import pandas as pd
+import numpy as np
+
+import platform
+import matplotlib.pyplot as plt
+
+%matplotlib inline
+
+path = "c:/Windows/Fonts/malgun.ttf"
+from matplotlib import font_manager, rc
+if platform.system() == 'Darwin':
+    rc('font', family='AppleGothic')
+elif platform.system() == 'Windows':
+    font_name = font_manager.FontProperties(fname=path).get_name()
+    rc('font', family=font_name)
+else:
+    print('Unknown system... sorry~~~~')    
+
+plt.rcParams['axes.unicode_minus'] = False
+
+
+
+1. 모듈 선언
+from selenium import webdriver
+import time
+
+
+
+
+2. 중앙선관위 홈페이지 접속
+
+driver = webdriver.Chrome('c:/data/chromedriver.exe')
+driver.get("http://info.nec.go.kr/main/showDocument.xhtml?electionId=0000000000&topMenuId=VC&secondMenuId=VCCP09")
+
+
+3. 개표현황
+driver.find_element_by_id("electionType1").click()
+
+
+
+
+4. 선택항목에서 19대 선택
+
+driver.find_element_by_id("electionName").send_keys("제19대")
+
+
+
+
+5. 대통령선거 선택
+driver.find_element_by_id("electionCode").send_keys("대통령선거")
+
+
+
+6. 시도 선택
+
+sido_list_raw = driver.find_element_by_xpath("""//*[@id="cityCode"]""")
+sido_list = sido_list_raw.find_elements_by_tag_name("option")
+sido_names_values = [option.text for option in sido_list]
+sido_names_values = sido_names_values[2:]
+sido_names_values
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
